@@ -66,11 +66,53 @@ O sistema operacional simulado implementa três algoritmos de escalonamento de p
     // main.go
     package main
 
+    import (
+        "fmt"       // Pacote para formatação de entrada e saída
+        "math/rand" // Pacote para geração de números aleatórios
+        "sort"      // Pacote para ordenação de slices e coleções
+        "sync"      // Pacote para sincronização de goroutines
+        "time"      // Pacote para manipulação de tempo e datas
+    )
+
     func main() {
-        // Inicializa o sistema operacional
-        initOS()
-        // Executa o loop principal do sistema operacional
-        runOS()
+        rand.Seed(time.Now().UnixNano()) // Inicializa a semente do gerador de números aleatórios
+        var wg sync.WaitGroup            // Cria um grupo de espera para sincronizar goroutines
+        var choice int                   // Variável para armazenar a escolha do usuário
+        for {
+            fmt.Println(Yellow + "\n===== Menu de Escalonamento =====" + Reset)
+            fmt.Println("1. FIFO")
+            fmt.Println("2. Round Robin (Quantum = 200ms)")
+            fmt.Println("3. Prioridade")
+            fmt.Println("4. Sair")
+            fmt.Print("Escolha uma opção: ")
+            fmt.Scan(&choice) // Lê a escolha do usuário
+            switch choice {
+            case 1:
+                wg.Add(1) // Adiciona uma goroutine ao grupo de espera
+                go func() {
+                    defer wg.Done()                    // Marca a goroutine como concluída ao final
+                    fifoScheduler(generateProcesses()) // Executa o escalonador FIFO
+                }()
+            case 2:
+                wg.Add(1)
+                go func() {
+                    defer wg.Done()
+                    roundRobinScheduler(generateProcesses(), 200) // Executa o escalonador Round-Robin com quantum de 200ms
+                }()
+            case 3:
+                wg.Add(1)
+                go func() {
+                    defer wg.Done()
+                    priorityScheduler(generateProcesses()) // Executa o escalonador por Prioridade
+                }()
+            case 4:
+                fmt.Println(Green + "Saindo..." + Reset)
+                return // Sai do programa
+            default:
+                fmt.Println(Red + "Opção inválida!" + Reset)
+            }
+            wg.Wait() // Espera todas as goroutines concluírem
+        }
     }
     ```
 
@@ -80,10 +122,10 @@ O sistema operacional simulado implementa três algoritmos de escalonamento de p
     package main
 
     type Process struct {
-        PID     int
-        BurstTime int
-        Priority int
-        State   ProcessState
+        ID        int          // Identificador do processo
+        BurstTime int          // Tempo de execução do processo
+        Priority  int          // Prioridade do processo
+        State     ProcessState // Estado atual do processo
     }
 
     func createProcess() *Process {
@@ -161,11 +203,106 @@ O estado de cada processo é gerenciado por uma constante `ProcessState`, com os
 #### FIFO (First-Come, First-Served)
 O algoritmo FIFO executa os processos na ordem em que chegam. O primeiro processo a ser iniciado será o primeiro a ser completado, o que pode resultar em problemas de inanição quando processos curtos ficam bloqueados devido a processos longos.
 
+```go
+func fifoScheduler(processes []Process) {
+    introduction("FIFO")
+    printLegend()
+    totalBurstTime := 0
+    for _, p := range processes {
+        totalBurstTime += p.BurstTime
+    }
+    elapsedTime := 0
+    for i := range processes {
+        processes[i].State = Running
+        printProcesses(processes)
+        typeWriterPrint(fmt.Sprintf(Yellow+"Processo %d está executando. (FIFO: Executa na ordem de chegada)"+Reset, processes[i].ID))
+        for j := 0; j < processes[i].BurstTime; j += 100 {
+            time.Sleep(100 * time.Millisecond)
+            elapsedTime += 100
+            printProgressBar(min(elapsedTime*100/totalBurstTime, 100))
+        }
+        processes[i].State = Completed
+        printProgressBar(100)
+        typeWriterPrint(fmt.Sprintf(Green+"Processo %d finalizado! (FIFO: Executa na ordem de chegada)"+Reset, processes[i].ID))
+        printProcesses(processes)
+    }
+    runQuiz("FIFO")
+}
+```
+
 #### Round-Robin
 No algoritmo Round-Robin, cada processo recebe uma fatia de tempo (quantum). Se o processo não concluir sua execução dentro do tempo alocado, ele é pausado e colocado novamente no final da fila. Este método busca evitar a inanição, mas pode gerar overhead devido ao grande número de trocas de contexto.
 
+```go
+func roundRobinScheduler(processes []Process, quantum int) {
+    introduction("Round-Robin")
+    printLegend()
+    totalBurstTime := 0
+    for _, p := range processes {
+        totalBurstTime += p.BurstTime
+    }
+    elapsedTime := 0
+    queue := append([]Process{}, processes...)
+    for len(queue) > 0 {
+        p := &queue[0]
+        p.State = Running
+        printProcesses(queue)
+        typeWriterPrint(fmt.Sprintf(Yellow+"Processo %d está executando por %d ms. (Round-Robin: Cada processo recebe uma fatia de tempo)"+Reset, p.ID, quantum))
+        for j := 0; j < min(p.BurstTime, quantum); j += 100 {
+            time.Sleep(100 * time.Millisecond)
+            elapsedTime += 100
+            printProgressBar(min(elapsedTime*100/totalBurstTime, 100))
+        }
+        p.BurstTime -= quantum
+        if p.BurstTime > 0 {
+            p.State = Paused
+            printProgressBar(100)
+            typeWriterPrint(fmt.Sprintf(Purple+"Processo %d pausado! (Round-Robin: Processo pausado e colocado no final da fila)"+Reset, p.ID))
+            queue = append(queue[1:], *p)
+        } else {
+            p.State = Completed
+            printProgressBar(100)
+            typeWriterPrint(fmt.Sprintf(Green+"Processo %d finalizado! (Round-Robin: Cada processo recebe uma fatia de tempo)"+Reset, p.ID))
+            queue = queue[1:]
+        }
+        printProcesses(queue)
+    }
+    runQuiz("Round-Robin")
+}
+```
+
 #### Prioridade
 O algoritmo de escalonamento por Prioridade executa os processos com base em sua prioridade. Processos com menor valor de prioridade são executados primeiro. Isso pode gerar problemas de inanição para processos de baixa prioridade se o sistema constantemente tiver processos de alta prioridade.
+
+```go
+func priorityScheduler(processes []Process) {
+    introduction("Prioridade")
+    printLegend()
+    totalBurstTime := 0
+    for _, p := range processes {
+        totalBurstTime += p.BurstTime
+    }
+    elapsedTime := 0
+    sort.Slice(processes, func(i, j int) bool {
+        return processes[i].Priority < processes[j].Priority
+    })
+    for i := range processes {
+        processes[i].State = Running
+        printProcesses(processes)
+        typeWriterPrint(fmt.Sprintf(Yellow+"Processo %d está executando. (Prioridade: Executa com base na prioridade)"+Reset, processes[i].ID))
+        for j := 0; j < processes[i].BurstTime; j += 100 {
+            time.Sleep(100 * time.Millisecond)
+            elapsedTime += 100
+            printProgressBar(min(elapsedTime*100/totalBurstTime, 100))
+        }
+        processes[i].State = Completed
+        printProgressBar(100)
+        typeWriterPrint(fmt.Sprintf(Green+"Processo %d finalizado! (Prioridade: Executa com base na prioridade)"+Reset, processes[i].ID))
+        printProcesses(processes)
+    }
+    runQuiz("Prioridade")
+}
+```
 
 ## Conclusão
 Este projeto oferece uma simulação interativa dos principais algoritmos de escalonamento de processos em sistemas operacionais, permitindo que o usuário visualize, entenda e experimente cada um desses algoritmos de forma prática. O código é modular e extensível, proporcionando uma excelente base para o estudo de sistemas operacionais e a implementação de outros conceitos, como gerenciamento de memória e sistemas de arquivos.
