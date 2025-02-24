@@ -11,12 +11,36 @@
    3. [Estrutura de Dados](#estrutura-de-dados)
    4. [Algoritmos de Escalonamento Implementados](#algoritmos-de-escalonamento-implementados)
 6. [Conclusão](#conclusão)
+7. [Referências](#referências)
 
 ## Introdução
 Este projeto simula o funcionamento básico de um sistema operacional, implementado em Go, com foco no gerenciamento de processos, escalonamento de CPU e simulação de diferentes algoritmos de escalonamento. O objetivo principal é fornecer uma visão geral sobre como os sistemas operacionais gerenciam os recursos do sistema, especificamente os processos.
 
 ## Objetivo
 O projeto tem como propósito demonstrar os principais conceitos de um sistema operacional, como o escalonamento de processos e a interação entre processos e CPU. Utilizando Go, foram implementados três algoritmos de escalonamento: **FIFO**, **Round-Robin** e **Prioridade**, todos com uma interface interativa para visualização e compreensão de seu funcionamento.
+
+## Fundamentação Teórica
+
+### 1. Vamos falar sobre Sistemas Operacionais
+Os sistemas operacionais (SOs) são como os maestros da orquestra que é o seu computador. Eles coordenam todos os recursos de hardware, como processadores, memória e arquivos, garantindo que tudo funcione em harmonia. Tanenbaum e Bos (2015) nos lembram que o SO é o intermediário entre o hardware e o usuário, fazendo com que as aplicações rodem de maneira eficiente e segura. Um dos grandes desafios que esses sistemas enfrentam é o escalonamento de processos, que é basicamente a arte de distribuir o tempo da CPU entre as várias tarefas que estão rolando ao mesmo tempo.
+
+### 2. O que é Escalonamento de Processos?
+O escalonamento de processos é uma técnica super importante para gerenciar a CPU. Ele permite que vários programas compartilhem os recursos do sistema de uma forma bem eficiente. Stallings (2018) explica que existem dois tipos principais de algoritmos de escalonamento: os preemptivos e os não preemptivos. Os preemptivos são como aquele amigo que interrompe você no meio de uma conversa para falar sobre algo mais, permitindo que um novo processo entre em ação. Já os não preemptivos são mais educados, deixando o processo atual terminar antes de chamar o próximo.
+
+#### 2.1. Vamos conferir alguns Algoritmos de Escalonamento
+##### 2.1.1. FIFO (First-Come, First-Served)
+O FIFO é bem straightforward: quem chega primeiro, é atendido primeiro. Silberschatz, Galvin e Gagne (2018) nos alertam sobre o "convoy effect", que é quando processos menores ficam parados na fila, esperando um processo maior acabar. Isso pode deixar o sistema meio devagar.
+
+##### 2.1.2. Round-Robin
+O Round-Robin é um dos favoritos, especialmente em sistemas interativos. Ele dá um tempo fixo (ou "quantum") para cada processo antes de passar a vez. Stallings (2018) destaca que isso dá uma responsividade bem melhor ao sistema, mas cuidado! Muitas trocas de contexto podem acabar sobrecarregando o processador.
+
+##### 2.1.3. Escalonamento por Prioridade
+Aqui, os processos são escalonados de acordo com uma prioridade. Tanenbaum e Bos (2015) afirmam que os processos mais "importantes" são atendidos primeiro. Mas, atenção: isso pode deixar os processos de baixa prioridade na fila eternamente, a menos que haja um jeito de dar uma força para eles, como um mecanismo de envelhecimento.
+
+## Metodologia
+A implementação do sistema de escalonamento foi desenvolvida na linguagem Go. Cada processo pode assumir diferentes estados, como "Pronto", "Executando", "Pausado", "Finalizado" ou "Erro". Os processos possuem um identificador, tempo de execução, prioridade e estado atual.
+
+Os testes foram conduzidos criando um conjunto de processos aleatórios, simulando diferentes cenários para os algoritmos mencionados. As métricas analisadas incluem tempo médio de espera e tempo médio de resposta para cada algoritmo.
 
 ## Instalação
 Para instalar e executar este projeto, siga os passos abaixo:
@@ -306,4 +330,13 @@ func priorityScheduler(processes []Process) {
 
 ## Conclusão
 Este projeto oferece uma simulação interativa dos principais algoritmos de escalonamento de processos em sistemas operacionais, permitindo que o usuário visualize, entenda e experimente cada um desses algoritmos de forma prática. O código é modular e extensível, proporcionando uma excelente base para o estudo de sistemas operacionais e a implementação de outros conceitos, como gerenciamento de memória e sistemas de arquivos.
+
+## Referências
+DONOVAN, A. A.; KERNIGHAN, B. W. The Go Programming Language. Boston: Addison-Wesley, 2016.
+
+SILBERSCHATZ, A.; GALVIN, P. B.; GAGNE, G. Operating System Concepts. 10th ed. Hoboken: Wiley, 2018.
+
+STALLINGS, W. Operating Systems: Internals and Design Principles. 9th ed. Boston: Pearson, 2018.
+
+TANENBAUM, A. S.; BOS, H. Modern Operating Systems. 4th ed. Boston: Pearson, 2015.
 
